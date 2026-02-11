@@ -334,7 +334,7 @@ def generar_menu(kcal, bloques, n_comidas):
         ratios = {"Desayuno": 0.25, "Almuerzo": 0.40, "Cena": 0.35}
     elif n_comidas == 4:
         tomas = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
-        ratios = {"Desayuno": 0.25, "Almuerzo": 0.35, "Merienda": 0.10, "Cena": 0.30}
+        ratios = {"Desayuno": 0.25, "Almuerzo": 0.40, "Merienda": 0.10, "Cena": 0.25}
     else: 
         tomas = ["Desayuno", "Media Mañana", "Almuerzo", "Merienda", "Cena"]
         ratios = {"Desayuno": 0.20, "Media Mañana": 0.10, "Almuerzo": 0.35, "Merienda": 0.10, "Cena": 0.25}
@@ -400,7 +400,7 @@ if __name__ == "__main__":
     
     print(f"\n✅ PLAN GENERADO CON ÉXITO")
     print(f"   📊 Calorías: {kcal} Kcal")
-    print(f"   💪 Proteína: {int(g_prot_total)}g (Rigor científico: 1.6g/kg)")
+    print(f"   💪 Proteína: {int(g_prot_total)}g")
     print(f"   🍽️  Estructura: {n_comidas} ingestas diarias")
     
     df = generar_menu(kcal, bloques, n_comidas)
@@ -414,7 +414,7 @@ if __name__ == "__main__":
                 print(f"👉 {comida.upper()}: {row[comida]}")
         
     print("\n" + "="*50)
-    print("🛒 LISTA DE LA COMPRA SEMANAL (AUTOMÁTICA)")
+    print("🛒 LISTA DE LA COMPRA SEMANAL")
     print("   (Todo sumado para ir una sola vez al súper)")
     print("-" * 50)
     for k, v in sorted(SHOPPING_CART.items()):
