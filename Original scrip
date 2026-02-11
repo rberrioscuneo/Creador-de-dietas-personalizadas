@@ -18,15 +18,13 @@ DB = {
         ("Leche Semidesnatada", 250, "ml"), # Vaso estándar
         ("Yogur Natural", 125, "g"),        # Unidad estándar
         ("Queso Fresco Batido", 100, "g"),
-        ("Kéfir", 200, "ml")
-    ],
+        ("Kéfir", 200, "ml")],
     "Proteina_Snack": [ 
         ("Pechuga de Pavo (>90% carne)", 50, "g"),
-        ("Jamón Serrano (Sin grasa)", 40, "g"),
+        ("Jamón Serrano", 40, "g"),
         ("Lomo Embuchado", 40, "g"),
-        ("Atún al Natural (Lata pequeña)", 52, "g"), 
-        ("Huevo Cocido (Tamaño M/L)", 1, "ud")
-    ],
+        ("Atún al Natural", 50, "g"), 
+        ("Huevo Cocido (Tamaño M/L)", 1, "ud")],
     "Proteina_Plato": [ 
         # Base 100g para facilitar el redondeo posterior
         ("Pechuga de Pollo", 100, "g"), 
@@ -34,57 +32,49 @@ DB = {
         ("Lomo de Cerdo Fresco", 100, "g"),
         ("Merluza/Pescado Blanco", 100, "g"),
         ("Salmón/Pescado Azul", 100, "g"),
-        ("Sepia/Calamar/Potón", 100, "g")
-    ],
+        ("Sepia/Calamar/Potón", 100, "g")],
     "Carbo_Desayuno_Dulce": [ 
         ("Copos de Avena", 30, "g"),
-        ("Muesli sin azúcar añadido", 30, "g")
-    ],
+        ("Muesli sin azúcar añadido", 30, "g")],
     "Carbo_Desayuno_Salado": [ 
         ("Pan 100% Integral", 40, "g"),
         ("Pan", 40, "g"),
-        ("Tortitas de Maíz", 30, "g")
-    ],
+        ("Tortitas de Maíz", 30, "g")],
     "Carbo_Guarnicion": [ 
         ("Arroz Integral", 40, "g"), 
         ("Pasta Integral", 40, "g"),
         ("Patata Cocida/Asada", 150, "g"),
         ("Legumbres", 100, "g"), 
-        ("Quinoa", 40, "g")
-    ],
+        ("Quinoa", 40, "g")],
     "Verduras": [ 
         ("Mezcla de Lechugas", 150, "g"),
         ("Calabacín", 200, "g"),
         ("Espinacas", 200, "g"),
         ("Judías Verdes", 150, "g"),
         ("Parrillada de Verduras", 200, "g"),
-        ("Brócoli/Coliflor", 200, "g")
-    ],
+        ("Brócoli/Coliflor", 200, "g")],
     "Frutas": [ 
         ("Manzana", 150, "g"), ("Plátano", 80, "g"),
-        ("Mandarinas", 150, "g"), ("Kiwi", 100, "g"), ("Pera", 150, "g"),
-        ("Fresas", 200, "g"), ("Melón/Sandía", 200, "g")
-    ],
+        ("Mandarinas", 150, "g"),  ("Naranja", 150, "g"), ("Kiwi", 100, "g"), ("Pera", 150, "g"),
+        ("Fresas", 200, "g"), ("Melón/Sandía", 200, "g")],
     "Grasas_Salado": [ # Para cocinar o tostadas
         ("Aceite de Oliva Virgen Extra", 10, "g"),
         ("Aguacate", 50, "g"),
-        ("Aceitunas", 40, "g")
-    ],
+        ("Aceitunas", 40, "g")],
     "Grasas_Acompanamiento": [
         ("Aguacate", 50, "g"),
         ("Aceitunas", 50, "g"),
         ("Queso Curado", 30, "g"),
-        ("Nueces", 20, "g")
-    ],
+        ("Nueces", 20, "g")],
     "Grasas_Dulce": [ 
         ("Nueces", 15, "g"), 
-        ("Almendras al natural", 15, "g"),
+        ("Anacardos", 15, "g"), 
+        ("Pistachos", 15, "g"),
+        ("Almendras", 15, "g"),
         ("Semillas de Calabaza", 15, "g"),
         ("Semillas de Chía", 10, "g"),
         ("Semillas de Lino", 10, "g"),
-        ("Crema de Cacahuete 100%", 15, "g")
-    ]
-}
+        ("Crema de Cacahuete", 15, "g")]}
 
 # --- 3. CÁLCULO CIENTÍFICO ---
 
