@@ -42,14 +42,14 @@ DB = {
     ],
     "Carbo_Desayuno_Salado": [ 
         ("Pan 100% Integral", 40, "g"),
-        ("Pan de Masa Madre", 40, "g"),
+        ("Pan", 40, "g"),
         ("Tortitas de Maíz", 30, "g")
     ],
     "Carbo_Guarnicion": [ 
         ("Arroz Integral", 40, "g"), 
         ("Pasta Integral", 40, "g"),
         ("Patata Cocida/Asada", 150, "g"),
-        ("Legumbres (Garbanzos/Lentejas)", 100, "g"), 
+        ("Legumbres", 100, "g"), 
         ("Quinoa", 40, "g")
     ],
     "Verduras": [ 
@@ -71,7 +71,7 @@ DB = {
         ("Aceitunas", 40, "g")
     ],
     "Grasas_Acompanamiento": [
-        ("Aguacate (Troceado)", 50, "g"),
+        ("Aguacate", 50, "g"),
         ("Aceitunas", 50, "g"),
         ("Queso Curado", 30, "g"),
         ("Nueces", 20, "g")
@@ -124,15 +124,15 @@ def calcular_requerimientos():
 
     print("\n--- 3. Frecuencia de Comidas ---")
     print("   [3] Tres comidas: Desayuno, Almuerzo y Cena")
-    print("   [4.1] Cuatro comidas: Añadiendo Merienda")
-    print("   [4.2] Cuatro comidas: Añadiendo Media Mañana")
+    print("   [4A] Cuatro comidas: Añadiendo Merienda")
+    print("   [4B] Cuatro comidas: Añadiendo Media Mañana")
     print("   [5] Cinco comidas: Añadiendo Media Mañana y Merienda")
     try:
-        n_comidas_input = int(input("   > Selecciona una opción (3, 4.1, 4.2, 5): "))
-        if n_comidas_input not in [3, 4.1, 4.2, 5]: n_comidas = 4.2
+        n_comidas_input = input("   > Selecciona una opción (3, 4A, 4B, 5): ")
+        if n_comidas_input not in ['3', '4A', '4B', '5']: n_comidas = '4B'
         else: n_comidas = n_comidas_input
     except:
-        n_comidas = 4.2
+        n_comidas = '4B'
 
     print("\n--- 4. Objetivo Nutricional ---")
     print("   [A] Perder Grasa (Déficit Calórico)")
@@ -330,13 +330,13 @@ def generar_menu(kcal, bloques, n_comidas):
     deck_carbo = (DB["Carbo_Guarnicion"] * 2)
     random.shuffle(deck_carbo)
     
-    if n_comidas == 3:
+    if n_comidas == '3':
         tomas = ["Desayuno", "Almuerzo", "Cena"]
         ratios = {"Desayuno": 0.25, "Almuerzo": 0.40, "Cena": 0.35}
-    elif n_comidas == 4.1:
+    elif n_comidas == '4A':
         tomas = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
         ratios = {"Desayuno": 0.25, "Almuerzo": 0.40, "Merienda": 0.10, "Cena": 0.25}
-    elif n_comidas == 4.2:
+    elif n_comidas == '4B':
         tomas = ["Desayuno", "Media Mañana", "Almuerzo", "Cena"]
         ratios = {"Desayuno": 0.25, "Media Mañana": 0.10, "Almuerzo": 0.40, "Cena": 0.25}
     else: 
