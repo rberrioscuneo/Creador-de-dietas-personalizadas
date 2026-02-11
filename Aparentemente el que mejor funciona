@@ -1,0 +1,496 @@
+import random
+import math
+import pandas as pd
+from collections import defaultdict
+
+# Intentamos importar FPDF
+try:
+    from fpdf import FPDF
+    PDF_AVAILABLE = True
+except ImportError:
+    PDF_AVAILABLE = False
+    print("⚠️  AVISO: Instala 'fpdf' (pip install fpdf) para generar el PDF.")
+
+# --- 1. CONFIGURACIÓN Y BASE DE DATOS ---
+SHOPPING_CART = defaultdict(float)
+STOCK_EN_CASA = [] 
+
+def reset_shopping_cart():
+    SHOPPING_CART.clear()
+
+def add_to_cart(nombre, cantidad):
+    for stock in STOCK_EN_CASA:
+        if stock.lower() in nombre.lower():
+            return 
+    SHOPPING_CART[nombre] += cantidad
+
+# Base de Datos V26 (Topes Fruta Activados)
+DB = {
+    "Lacteos": [
+        ("Leche Semidesnatada", 250, "ml"), ("Yogur Natural", 125, "g"), 
+        ("Queso Fresco Batido", 100, "g"), ("Kéfir", 200, "ml"),
+        ("Yogur Griego Ligero", 125, "g")
+    ],
+    "Proteina_Snack_Pan": [ 
+        ("Atún al Natural (Lata)", 52, "g"), 
+        ("Sardinas en lata (Escurridas)", 50, "g"),
+        ("Hummus (Garbanzo)", 40, "g")
+    ],
+    "Proteina_Snack_Solo": [ 
+        ("Pechuga de Pavo (>90%)", 50, "g"), ("Jamón Serrano (Sin grasa)", 40, "g"),
+        ("Lomo Embuchado", 40, "g"), ("Huevo Cocido", 1, "ud"),
+        ("Queso Curado (Cuña)", 30, "g"), ("Cecina", 30, "g")
+    ],
+    "Proteina_Plato": [ 
+        ("Pechuga de Pollo", 100, "g"), ("Filete de Ternera Magra", 100, "g"),
+        ("Lomo de Cerdo Fresco", 100, "g"), ("Merluza/Pescado Blanco", 100, "g"),
+        ("Salmón/Pescado Azul", 100, "g"), ("Sepia/Calamar", 100, "g"),
+        ("Gambones/Langostinos", 120, "g")
+    ],
+    "Carbo_Desayuno_Dulce": [ 
+        ("Copos de Avena", 30, "g"), ("Muesli sin azúcar", 30, "g")
+    ],
+    "Carbo_Desayuno_Salado": [ 
+        ("Pan 100% Integral", 40, "g"), ("Pan de Masa Madre", 40, "g"),
+        ("Tortitas de Maíz", 30, "g"), ("Biscotes Integrales", 30, "g")
+    ],
+    "Carbo_Almidon": [ 
+        ("Arroz Integral", 40, "g"), ("Pasta Integral", 40, "g"),
+        ("Patata Cocida", 150, "g"), ("Quinoa", 40, "g"), ("Boniato", 150, "g")
+    ],
+    "Carbo_Legumbre": [
+        ("Lentejas (bote)", 100, "g"), ("Garbanzos (bote)", 100, "g"),
+        ("Alubias Blancas", 100, "g"), ("Guisantes", 100, "g"), ("Edamame", 100, "g")
+    ],
+    "Verduras": [ 
+        ("Mezcla de Lechugas", 150, "g"), ("Calabacín", 200, "g"),
+        ("Espinacas", 200, "g"), ("Judías Verdes", 150, "g"),
+        ("Parrillada de Verduras", 200, "g"), ("Brócoli", 200, "g"),
+        ("Espárragos", 150, "g"), ("Champiñones", 150, "g"),
+        ("Tomate Aliñado", 200, "g")
+    ],
+    "Frutas": [ 
+        ("Manzana", 150, "g"), ("Plátano", 80, "g"), ("Mandarinas", 150, "g"), 
+        ("Kiwi", 100, "g"), ("Pera", 150, "g"), ("Fresas", 200, "g"), ("Melón", 200, "g"),
+        ("Piña Natural", 150, "g")
+    ],
+    "Grasas_Salado": [ 
+        ("Aceite de Oliva Virgen Extra", 10, "g")
+    ],
+    "Grasas_Acompanamiento": [
+        ("Aguacate", 50, "g"), ("Aceitunas", 40, "g"),
+        ("Queso Curado", 30, "g"), ("Nueces", 20, "g"), ("Semillas de Calabaza", 15, "g")
+    ],
+    "Grasas_Dulce": [ 
+        ("Nueces", 15, "g"), ("Almendras", 15, "g"), ("Semillas de Chía", 10, "g"),
+        ("Crema de Cacahuete 100%", 15, "g"), ("Chocolate 85%", 15, "g")
+    ]
+}
+
+# --- 2. ENTREVISTA USUARIO ---
+
+def input_amable(pregunta, opciones_validas=None):
+    print(f"\n💬 {pregunta}")
+    if opciones_validas:
+        print(f"   Opciones válidas: {opciones_validas}")
+    while True:
+        respuesta = input("   >> ").strip()
+        if not opciones_validas:
+            if respuesta: return respuesta 
+            else: continue
+        for op in opciones_validas:
+            if respuesta.upper() == op.upper():
+                return op.upper()
+        print("   ⚠️  Opción no reconocida. Inténtalo de nuevo.")
+
+def entrevista_inicial():
+    print("\n" + "="*60)
+    print("   🍎 SUITE NUTRICIONAL V27 (CONTROL TOTAL DE DÍAS)")
+    print("="*60)
+    
+    nombre = input("   Hola, ¿cómo te llamas?: ").strip()
+    
+    try:
+        peso = float(input("   1. Peso exacto (kg): "))
+        talla = float(input("   2. Altura (cm): "))
+        edad = int(input("   3. Edad: "))
+        sexo = input_amable("¿Sexo biológico?", ['H', 'M'])
+    except:
+        print("   ❌ Error: Introduce números válidos.")
+        return entrevista_inicial()
+
+    print("\n   --- Hablemos de tu Actividad Diaria (NEAT) ---")
+    print("   (Sin contar el gimnasio, solo tu vida normal)")
+    print("   [1] Sedentario (Trabajo de oficina, casa, coche)")
+    print("   [2] Ligero (Caminar, tareas del hogar, recados)")
+    print("   [3] Activo (Trabajo de pie, movimiento constante)")
+    print("   [4] Muy Activo (Trabajo físico duro)")
+    act = input_amable("Elige tu nivel base:", ['1', '2', '3', '4'])
+
+    return {"nombre": nombre, "peso": peso, "talla": talla, "edad": edad, "sexo": sexo, "act": act}
+
+def configurar_entrenamiento():
+    print("\n   --- Configuración de Entrenamiento ---")
+    
+    hace_fuerza = input_amable("¿Entrenas Fuerza / Pesas / Calistenia?", ['SI', 'NO'])
+    dias_fuerza = 0
+    if hace_fuerza == 'SI':
+        dias_fuerza = int(input_amable("¿Cuántos días a la semana?", [str(i) for i in range(1, 8)]))
+        
+    hace_cardio = input_amable("¿Entrenas Cardio / Running / Deporte equipo?", ['SI', 'NO'])
+    dias_cardio = 0
+    if hace_cardio == 'SI':
+        dias_cardio = int(input_amable("¿Cuántos días a la semana?", [str(i) for i in range(1, 8)]))
+        
+    tipo_estrategia = "LINEAL_BAJA" 
+    if dias_fuerza > 0:
+        tipo_estrategia = "CICLICA" 
+    elif dias_cardio > 0:
+        tipo_estrategia = "LINEAL_ALTA"
+    else:
+        tipo_estrategia = "LINEAL_BAJA" 
+        
+    return tipo_estrategia, dias_fuerza, dias_cardio
+
+# --- 3. CÁLCULO CIENTÍFICO ---
+
+def calcular_macros(perfil, objetivo, intensidad, estrategia_tipo, dias_fuerza, dias_cardio):
+    peso = perfil['peso']
+    if perfil['sexo'] == 'H':
+        tmb = 66.5 + (13.75 * peso) + (5 * perfil['talla']) - (6.78 * perfil['edad'])
+    else:
+        tmb = 665 + (9.56 * peso) + (1.85 * perfil['talla']) - (4.68 * perfil['edad'])
+
+    act_map = {'1': 1.2, '2': 1.35, '3': 1.5, '4': 1.7}
+    factor_act = act_map.get(str(perfil['act']), 1.2)
+    
+    gasto_semanal_extra = (dias_fuerza * 350) + (dias_cardio * 400)
+    gasto_diario_extra = gasto_semanal_extra / 7
+    
+    kcal_mant = (tmb * factor_act) + gasto_diario_extra
+    
+    ajuste = 0
+    if objetivo == 'A': ajuste = -0.20 if intensidad == '3' else (-0.15 if intensidad == '2' else -0.10)
+    elif objetivo == 'C': ajuste = 0.20 if intensidad == '3' else (0.15 if intensidad == '2' else 0.10)
+    
+    kcal_target = kcal_mant * (1 + ajuste)
+    
+    g_prot_target = peso * 1.6  
+    
+    PROTEINA_RESIDUAL = 75 
+    g_prot_bloques = max(0, g_prot_target - PROTEINA_RESIDUAL)
+    
+    g_grasa = peso * 1.0
+    
+    kcal_fijas = (g_prot_target * 4) + (g_grasa * 9)
+    
+    if estrategia_tipo == "CICLICA":
+        kcal_high = max(kcal_fijas + 300, kcal_target * 1.1) 
+        if objetivo == 'A': kcal_high = kcal_target + 100 
+        
+        hc_high = (kcal_high - kcal_fijas) / 4
+        
+        kcal_low = kcal_target * 0.85 
+        if objetivo == 'C': kcal_low = kcal_target 
+        
+        hc_low = (kcal_low - kcal_fijas) / 4
+    else:
+        kcal_high = kcal_target
+        kcal_low = kcal_target
+        hc_high = (kcal_target - kcal_fijas) / 4
+        hc_low = hc_high
+
+    bloques_high = {"HC": hc_high/30, "PROT": g_prot_bloques/25, "GRASA": g_grasa/10}
+    bloques_low = {"HC": hc_low/30, "PROT": g_prot_bloques/25, "GRASA": g_grasa/10}
+    
+    return int(kcal_high), int(kcal_low), bloques_high, bloques_low, g_prot_target
+
+# --- 4. MOTORES DE COCINA ---
+
+def redondear_cantidad(valor, paso):
+    if valor <= 0: return 0
+    return int(round(valor / paso) * paso)
+
+def get_ingrediente(categoria, raciones, paso_redondeo=5, forzar_tope=None):
+    if raciones <= 0: return "", 0, 0
+    
+    nombre, base, unidad = random.choice(DB[categoria])
+    cantidad_calculada = base * raciones
+    
+    total = 0
+    if unidad == "ud":
+        total = math.ceil(cantidad_calculada)
+    else:
+        total = redondear_cantidad(cantidad_calculada, paso_redondeo)
+    
+    # Topes de Seguridad (V26)
+    tope_real = 9999
+    if forzar_tope:
+        tope_real = forzar_tope
+    elif categoria == "Carbo_Almidon":
+        if "Patata" in nombre or "Boniato" in nombre: tope_real = 350
+        else: tope_real = 120 
+    elif categoria == "Carbo_Legumbre":
+        tope_real = 200
+    elif categoria == "Frutas":
+        tope_real = 250 # Tope fruta activado
+    
+    remanente_raciones = 0
+    if total > tope_real:
+        remanente_factor = (total - tope_real) / total
+        remanente_raciones = raciones * remanente_factor
+        total = tope_real
+
+    if "Carbo" in categoria and total < 30 and total > 0: total = 30
+    if "Proteina_Plato" in categoria and total < 80: total = 80 
+
+    add_to_cart(f"{nombre} ({unidad})", total)
+    return f"{nombre} ({total}{unidad})", remanente_raciones, nombre
+
+def cocinar_snack_inteligente(bloques):
+    hc_disponible = bloques["HC"]
+    hay_pan = (hc_disponible >= 0.8)
+    
+    opciones = ["Dulce"]
+    if hay_pan: opciones.append("Salado_Bocadillo")
+    else: opciones.append("Salado_Tapa")
+    
+    estilo = random.choice(opciones)
+    plato = []
+    
+    if estilo == "Dulce":
+        l_txt, _, _ = get_ingrediente("Lacteos", 1)
+        f_txt, _, _ = get_ingrediente("Frutas", 1)
+        plato.append(f"Bowl: {l_txt} con {f_txt}")
+        if bloques["GRASA"] > 0.5:
+            g_txt, _, _ = get_ingrediente("Grasas_Dulce", 1, 5)
+            plato.append(f"Topping: {g_txt}")
+            
+    elif estilo == "Salado_Bocadillo":
+        pan_txt, _, _ = get_ingrediente("Carbo_Desayuno_Salado", 1, 10)
+        lista_prots = "Proteina_Snack_Pan" if random.random() > 0.5 else "Proteina_Snack_Solo"
+        p_txt, _, _ = get_ingrediente(lista_prots, 1, 10)
+        plato.append(f"Tostada: {pan_txt} con {p_txt}")
+        f_txt, _, _ = get_ingrediente("Frutas", 1)
+        plato.append(f"Postre: {f_txt}")
+        
+    elif estilo == "Salado_Tapa":
+        p_txt, _, _ = get_ingrediente("Proteina_Snack_Solo", 1.5, 10)
+        extra = ""
+        if bloques["GRASA"] > 0.5:
+            g_txt, _, _ = get_ingrediente("Grasas_Acompanamiento", 1, 5)
+            extra = f" + {g_txt}"
+        plato.append(f"Picoteo: {p_txt}{extra}")
+        f_txt, _, _ = get_ingrediente("Frutas", 1)
+        plato.append(f"Postre: {f_txt}")
+
+    return " // ".join(plato)
+
+def cocinar_dia(bloques, tomas, es_entreno, carga_nocturna_activa):
+    plan_dia = {}
+    prot_dia = random.choice(DB["Proteina_Plato"])
+    
+    ratios = {"Desayuno": 0.25, "Almuerzo": 0.35, "Merienda": 0.10, "Cena": 0.30}
+    if "Media Mañana" in tomas: ratios = {"Desayuno":0.20, "Media Mañana":0.10, "Almuerzo":0.35, "Merienda":0.10, "Cena":0.25}
+
+    for toma in tomas:
+        b_toma = {k: max(0.5, v * ratios.get(toma, 0.2)) for k, v in bloques.items()}
+        
+        usar_guarnicion = True
+        if toma == "Cena" and not es_entreno and not carga_nocturna_activa:
+            usar_guarnicion = False
+        if not usar_guarnicion: b_toma["HC"] = 0.5 
+
+        plato = []
+        
+        if toma == "Desayuno":
+            estilo = random.choice(["Dulce", "Salado"])
+            l_txt, _, _ = get_ingrediente("Lacteos", 1)
+            plato.append(f"{l_txt}")
+            
+            hc_req = b_toma["HC"]
+            if estilo == "Dulce":
+                c_txt, rem_hc, _ = get_ingrediente("Carbo_Desayuno_Dulce", hc_req, 10, forzar_tope=60)
+                g_txt, _, _ = get_ingrediente("Grasas_Dulce", 1, 5)
+                f_txt, _, _ = get_ingrediente("Frutas", 1.0 + (rem_hc*0.5), 10)
+                plato.append(f"Bowl: {c_txt} + {g_txt} + {f_txt}")
+            else:
+                c_txt, rem_hc, _ = get_ingrediente("Carbo_Desayuno_Salado", hc_req, 10)
+                g_txt, _, _ = get_ingrediente("Grasas_Salado", 1, 5)
+                p_txt, _, _ = get_ingrediente("Proteina_Snack_Solo", 1, 10)
+                plato.append(f"Tostadas: {c_txt} + {g_txt} + {p_txt}")
+                if rem_hc > 0:
+                    f_txt, _, _ = get_ingrediente("Frutas", 1 + rem_hc*0.5, 10)
+                    plato.append(f"Postre Extra: {f_txt}")
+
+        elif toma in ["Media Mañana", "Merienda"]:
+            plan_dia[toma] = cocinar_snack_inteligente(b_toma)
+            continue
+        
+        else: # Principal
+            v_txt, _, _ = get_ingrediente("Verduras", 1.2, 10)
+            
+            p_nom, p_base, p_unit = prot_dia
+            p_tot = redondear_cantidad(p_base * b_toma["PROT"], 50)
+            if p_tot < 80: p_tot = 80 
+            add_to_cart(f"{p_nom} ({p_unit})", p_tot)
+            p_txt = f"{p_nom} ({p_tot}{p_unit})"
+            
+            c_final = "(Sin almidón)"
+            if usar_guarnicion:
+                hc_totales = b_toma["HC"]
+                c_str_list = []
+                c1_txt, remanente_hc, _ = get_ingrediente("Carbo_Almidon", hc_totales, 10)
+                c_str_list.append(c1_txt)
+                if remanente_hc > 0.3:
+                    c2_txt, _, _ = get_ingrediente("Carbo_Legumbre", remanente_hc, 10)
+                    c_str_list.append(f"+ {c2_txt}")
+                c_final = " ".join(c_str_list)
+            
+            bloques_grasa = max(1, b_toma["GRASA"])
+            grasa_g = bloques_grasa * 10
+            aceite_g = min(15, grasa_g)
+            add_to_cart("Aceite de Oliva Virgen Extra (g)", aceite_g)
+            
+            acompanamiento = ""
+            grasa_sobrante = grasa_g - aceite_g
+            if grasa_sobrante >= 10:
+                g_extra_txt, _, _ = get_ingrediente("Grasas_Acompanamiento", grasa_sobrante/10, 5)
+                acompanamiento = f" + Extra: {g_extra_txt}"
+
+            plato.append(f"Verdura: {v_txt} + Proteína: {p_txt}")
+            plato.append(f"Guarnición: {c_final} + Aceite ({aceite_g}g){acompanamiento}")
+            
+            f_txt, _, _ = get_ingrediente("Frutas", 1, 10)
+            plato.append(f"Postre: {f_txt}")
+
+        plan_dia[toma] = " // ".join(plato)
+        
+    return plan_dia
+
+# --- 5. EXPORTACIÓN PDF ---
+
+def generar_pdf(df_menu, shopping_list, datos_usuario, suplementacion):
+    if not PDF_AVAILABLE: return
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, f"PLAN: {datos_usuario['nombre'].upper()}", ln=True, align='C')
+    
+    pdf.set_font("Arial", '', 10)
+    info = f"Peso: {datos_usuario['peso']}kg | Objetivo: {datos_usuario['objetivo']} | Proteína Objetivo: {int(datos_usuario['prot'])}g/día"
+    pdf.cell(0, 6, info, ln=True, align='C')
+    pdf.ln(5)
+
+    for index, row in df_menu.iterrows():
+        pdf.set_font("Arial", 'B', 10)
+        color = (210, 240, 210) if row['TIPO'] == 'HIGH' else (240, 220, 220)
+        if row['TIPO'] == 'STD': color = (230, 230, 250)
+        pdf.set_fill_color(*color)
+        
+        etiqueta = " (ENTRENO/ALTO)" if row['TIPO'] == 'HIGH' else " (DESCANSO/BAJO)"
+        if row['TIPO'] == 'STD': etiqueta = " (ESTÁNDAR)"
+        if row['CARGA_NOCTURNA']: etiqueta += " + CENA CARGA"
+        
+        dia_txt = f"{row['DÍA']}{etiqueta}".encode('latin-1', 'replace').decode('latin-1')
+        pdf.cell(0, 8, dia_txt, ln=True, fill=True, border=1)
+        
+        pdf.set_font("Arial", '', 9)
+        tomas = ["Desayuno", "Almuerzo", "Merienda", "Cena", "Media Mañana"]
+        for t in tomas:
+            if t in row:
+                texto = f"{t.upper()}: {row[t]}".encode('latin-1', 'replace').decode('latin-1')
+                pdf.multi_cell(0, 6, texto, border='LR')
+        pdf.cell(0, 0, "", border='T', ln=True)
+        pdf.ln(2)
+    
+    col_width = 90
+    i = 0
+    for k, v in sorted(shopping_list.items()):
+        cant = f"{v/1000:.2f} kg/L" if v >= 1000 else f"{int(v)}"
+        texto = f"[ ] {k}: {cant}".encode('latin-1', 'replace').decode('latin-1')
+        pdf.cell(col_width, 7, texto, border=1)
+        if i % 2 == 1: pdf.ln()
+        i += 1
+    
+    pdf.output(f"Plan_{datos_usuario['nombre']}.pdf")
+    print(f"\n📄 PDF GENERADO.")
+
+# --- 6. MAIN ---
+
+def main():
+    print("--- 🥦 SUITE NUTRICIONAL V27 (CONTROL DÍAS) ---")
+    reset_shopping_cart()
+    
+    perfil = entrevista_inicial()
+    estrategia, dias_fuerza, dias_cardio = configurar_entrenamiento()
+
+    print("\n🎯 Objetivo:")
+    print("   [A] Definir")
+    print("   [B] Mantener")
+    print("   [C] Volumen")
+    obj = input_amable("Elige:", ['A', 'B', 'C'])
+    
+    intensidad = '2'
+    if obj != 'B': intensidad = input_amable("   Intensidad (1-3)", ['1', '2', '3'])
+
+    n_comidas = int(input_amable("\n🍽️ Comidas al día (3-5)", ['3', '4', '5']))
+    if n_comidas == 3: tomas = ["Desayuno", "Almuerzo", "Cena"]
+    elif n_comidas == 4: tomas = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
+    else: tomas = ["Desayuno", "Media Mañana", "Almuerzo", "Merienda", "Cena"]
+
+    stock_raw = input("\n🏠 Stock (separado por comas): ")
+    global STOCK_EN_CASA
+    STOCK_EN_CASA = [x.strip() for x in stock_raw.split(",")]
+
+    kcal_high, kcal_low, b_high, b_low, g_prot_target = calcular_macros(
+        perfil, obj, intensidad, estrategia, dias_fuerza, dias_cardio
+    )
+
+    print(f"\n🚀 Calculando... High: {kcal_high}kcal | Low: {kcal_low}kcal | Prot Objetivo: {int(g_prot_target)}g")
+
+    menu_semanal = []
+    dias_semana_nombres = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"]
+    mapa_entreno = [False] * 7
+    
+    # NUEVO: PREGUNTA DÍA A DÍA
+    total_dias_entreno = dias_fuerza + dias_cardio
+    if total_dias_entreno > 0:
+        print("\n📅 Asignación de días de entrenamiento (SI/NO):")
+        for i, dia_nombre in enumerate(dias_semana_nombres):
+            res = input_amable(f"   ¿Entrenas el {dia_nombre}?", ['SI', 'NO'])
+            if res == 'SI': mapa_entreno[i] = True
+    
+    for i, dia in enumerate(dias_semana_nombres):
+        es_entreno = mapa_entreno[i]
+        
+        idx_manana = (i + 1) % 7
+        es_entreno_manana = mapa_entreno[idx_manana]
+        
+        carga_nocturna = False
+        
+        if estrategia == "CICLICA":
+            bloques = b_high if es_entreno else b_low
+            tipo = "HIGH" if es_entreno else "LOW"
+            if not es_entreno and es_entreno_manana: carga_nocturna = True
+        else:
+            bloques = b_high 
+            tipo = "STD"
+            carga_nocturna = True
+
+        plan = cocinar_dia(bloques, tomas, es_entreno if estrategia == "CICLICA" else True, carga_nocturna)
+        plan["DÍA"] = dia
+        plan["TIPO"] = tipo
+        plan["CARGA_NOCTURNA"] = carga_nocturna
+        menu_semanal.append(plan)
+
+    df = pd.DataFrame(menu_semanal)
+    
+    datos_pdf = {"nombre": perfil['nombre'], "peso": perfil['peso'], "objetivo": obj, "prot": g_prot_target}
+    generar_pdf(df, SHOPPING_CART, datos_pdf, [])
+
+if __name__ == "__main__":
+    main()
