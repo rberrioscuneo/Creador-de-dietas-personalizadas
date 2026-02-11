@@ -1,0 +1,427 @@
+import random
+import math
+import pandas as pd
+from collections import defaultdict
+
+# --- 1. CONFIGURACIÓN GLOBAL ---
+SHOPPING_CART = defaultdict(float)
+
+def reset_shopping_cart():
+    SHOPPING_CART.clear()
+
+def add_to_cart(nombre, cantidad):
+    SHOPPING_CART[nombre] += cantidad
+
+# --- 2. BASE DE DATOS (ESTANDARIZADA) ---
+DB = {
+    "Lacteos": [
+        ("Leche Semidesnatada", 250, "ml"), # Vaso estándar
+        ("Yogur Natural", 125, "g"),        # Unidad estándar
+        ("Queso Fresco Batido", 100, "g"),
+        ("Kéfir", 200, "ml")
+    ],
+    "Proteina_Snack": [ 
+        ("Pechuga de Pavo (>90% carne)", 50, "g"),
+        ("Jamón Serrano (Sin grasa)", 40, "g"),
+        ("Lomo Embuchado", 40, "g"),
+        ("Atún al Natural (Lata pequeña)", 52, "g"), 
+        ("Huevo Cocido (Tamaño M/L)", 1, "ud")
+    ],
+    "Proteina_Plato": [ 
+        # Base 100g para facilitar el redondeo posterior
+        ("Pechuga de Pollo", 100, "g"), 
+        ("Filete de Ternera Magra", 100, "g"),
+        ("Lomo de Cerdo Fresco", 100, "g"),
+        ("Merluza/Pescado Blanco", 100, "g"),
+        ("Salmón/Pescado Azul", 100, "g"),
+        ("Sepia/Calamar/Potón", 100, "g")
+    ],
+    "Carbo_Desayuno_Dulce": [ 
+        ("Copos de Avena", 30, "g"),
+        ("Muesli sin azúcar añadido", 30, "g")
+    ],
+    "Carbo_Desayuno_Salado": [ 
+        ("Pan 100% Integral", 40, "g"),
+        ("Pan de Masa Madre", 40, "g"),
+        ("Tortitas de Maíz", 30, "g")
+    ],
+    "Carbo_Guarnicion": [ 
+        ("Arroz Integral", 40, "g"), 
+        ("Pasta Integral", 40, "g"),
+        ("Patata Cocida/Asada", 150, "g"),
+        ("Legumbres (Garbanzos/Lentejas)", 100, "g"), 
+        ("Quinoa", 40, "g")
+    ],
+    "Verduras": [ 
+        ("Mezcla de Lechugas", 150, "g"),
+        ("Calabacín", 200, "g"),
+        ("Espinacas", 200, "g"),
+        ("Judías Verdes", 150, "g"),
+        ("Parrillada de Verduras", 200, "g"),
+        ("Brócoli/Coliflor", 200, "g")
+    ],
+    "Frutas": [ 
+        ("Manzana", 150, "g"), ("Plátano", 80, "g"),
+        ("Mandarinas", 150, "g"), ("Kiwi", 100, "g"), ("Pera", 150, "g"),
+        ("Fresas", 200, "g"), ("Melón/Sandía", 200, "g")
+    ],
+    "Grasas_Salado": [ # Para cocinar o tostadas
+        ("Aceite de Oliva Virgen Extra", 10, "g"),
+        ("Aguacate", 50, "g"),
+        ("Aceitunas", 40, "g")
+    ],
+    "Grasas_Acompanamiento": [
+        ("Aguacate (Troceado)", 50, "g"),
+        ("Aceitunas", 50, "g"),
+        ("Queso Curado", 30, "g"),
+        ("Nueces", 20, "g")
+    ],
+    "Grasas_Dulce": [ 
+        ("Nueces", 15, "g"), 
+        ("Almendras al natural", 15, "g"),
+        ("Semillas de Calabaza", 15, "g"),
+        ("Semillas de Chía", 10, "g"),
+        ("Semillas de Lino", 10, "g"),
+        ("Crema de Cacahuete 100%", 15, "g")
+    ]
+}
+
+# --- 3. CÁLCULO CIENTÍFICO ---
+
+def calcular_requerimientos():
+    print("\n" + "="*70)
+    print("   PLANIFICADOR NUTRICIONAL PROFESIONAL v12.0")
+    print("   (Lógica Realista: Pesos exactos y Guía Completa)")
+    print("="*70)
+    
+    # --- INPUTS CON LENGUAJE NATURAL ---
+    try:
+        print("\n--- 1. Datos Personales ---")
+        peso = float(input("   > Introduce tu peso actual en kg (ej. 75.5): "))
+        talla = float(input("   > Introduce tu altura en cm (ej. 178): "))
+        edad = int(input("   > Introduce tu edad en años: "))
+        sexo = input("   > Sexo biológico (Hombre 'H' / Mujer 'M'): ").strip().upper()
+    except:
+        print("   [!] Error en datos. Usando perfil estándar: Hombre, 75kg, 24 años.")
+        peso, talla, edad, sexo = 75, 178, 24, 'H'
+
+    # Harris-Benedict
+    if sexo == 'H':
+        tmb = 66.5 + (13.75 * peso) + (5 * talla) - (6.78 * edad)
+    else:
+        tmb = 665 + (9.56 * peso) + (1.85 * talla) - (4.68 * edad)
+
+    print("\n--- 2. Nivel de Actividad Diaria ---")
+    print("   [1] Sedentario (Trabajo de oficina, poco o nada de ejercicio)")
+    print("   [2] Ligero (Caminar, ejercicio suave 1-3 días/semana)")
+    print("   [3] Moderado (Deporte medio 3-5 días/semana)")
+    print("   [4] Intenso (Deporte fuerte 6-7 días/semana)")
+    opcion_act = input("   > Selecciona una opción (1-4): ")
+    act_map = {'1': 1.2, '2': 1.375, '3': 1.55, '4': 1.725}
+    act = act_map.get(opcion_act, 1.55)
+    
+    kcal_mantenimiento = tmb * act
+
+    print("\n--- 3. Frecuencia de Comidas ---")
+    print("   [3] Tres comidas: Desayuno, Almuerzo y Cena")
+    print("   [4] Cuatro comidas: Añadiendo Merienda")
+    print("   [5] Cinco comidas: Añadiendo Media Mañana y Merienda")
+    try:
+        n_comidas_input = int(input("   > Selecciona una opción (3, 4, 5): "))
+        if n_comidas_input not in [3, 4, 5]: n_comidas = 4
+        else: n_comidas = n_comidas_input
+    except:
+        n_comidas = 4
+
+    print("\n--- 4. Objetivo Nutricional ---")
+    print("   [A] Perder Grasa (Déficit Calórico)")
+    print("   [B] Mantenimiento (Normocalórica)")
+    print("   [C] Ganar Masa Muscular (Superávit Calórico)")
+    obj_raw = input("   > Selecciona tu objetivo (A/B/C): ").strip().upper()
+    
+    ajuste = 0
+    if obj_raw == 'A':
+        print("\n   ¿Qué ritmo prefieres?")
+        print("   [1] Conservador (-10%): Lento pero muy sostenible")
+        print("   [2] Moderado (-15%): El estándar recomendado")
+        print("   [3] Agresivo (-20%): Máximo saludable")
+        intensidad = input("   > Selecciona intensidad (1-3): ")
+        ajuste = -0.20 if intensidad == '3' else (-0.15 if intensidad == '2' else -0.10)
+    elif obj_raw == 'C':
+        print("\n   ¿Qué ritmo prefieres?")
+        print("   [1] Ganancia limpia (+10%): Minimiza grasa")
+        print("   [2] Volumen estándar (+15%)")
+        print("   [3] Volumen alto (+20%)")
+        intensidad = input("   > Selecciona intensidad (1-3): ")
+        ajuste = 0.20 if intensidad == '3' else (0.15 if intensidad == '2' else 0.10)
+    
+    kcal_objetivo = kcal_mantenimiento * (1 + ajuste)
+    
+    # --- CÁLCULO DE MACROS ---
+    # Proteína FIJA a 1.6 g/kg (Evidencia científica óptima para naturales)
+    g_prot = peso * 1.6
+    
+    # Grasa: Mínimo 1.0 g/kg para salud hormonal
+    g_grasa = peso * 1.0 
+    
+    kcal_ocupadas = (g_prot * 4) + (g_grasa * 9)
+    kcal_restantes = kcal_objetivo - kcal_ocupadas
+    
+    # Mínimo de seguridad para hidratos (evitar dietas cetogénicas involuntarias)
+    if kcal_restantes < 300: 
+        kcal_restantes = 300
+        kcal_objetivo = kcal_ocupadas + 300
+        
+    g_hc = kcal_restantes / 4
+
+    # Convertir a "Bloques" abstractos para el algoritmo de reparto
+    bloques = {
+        "HC": g_hc / 30,      # aprox 30g HC por bloque
+        "PROT": g_prot / 25,  # aprox 25g P por bloque
+        "GRASA": g_grasa / 10 # aprox 10g G por bloque
+    }
+    
+    return int(kcal_objetivo), bloques, n_comidas, g_prot
+
+# --- 4. GESTIÓN DE CANTIDADES (REDONDEO INTELIGENTE) ---
+
+def redondear_cantidad(valor, paso):
+    """Redondea 'valor' al múltiplo más cercano de 'paso'."""
+    if valor <= 0: return 0
+    return int(round(valor / paso) * paso)
+
+def get_ingrediente_ajustado(categoria, raciones, paso_redondeo=5):
+    if raciones <= 0: return "", 0
+    
+    nombre, base, unidad = random.choice(DB[categoria])
+    cantidad_cruda = base * raciones
+    
+    # Lógica de Redondeo según tipo de unidad
+    if unidad == "ud":
+        total = math.ceil(cantidad_cruda)
+    else:
+        # Aquí aplicamos el redondeo solicitado (ej. 50g para carnes)
+        total = redondear_cantidad(cantidad_cruda, paso_redondeo)
+        # Evitar cantidades ridículas (ej. 0g o 15g de carne)
+        if categoria == "Proteina_Plato" and total < 100: total = 100
+    
+    key = f"{nombre} ({unidad})"
+    add_to_cart(key, total)
+    
+    return f"{nombre} ({total}{unidad})", 0
+
+# --- 5. EL CHEF (LÓGICA CULINARIA) ---
+
+def cocinar_desayuno(bloques):
+    plato = []
+    estilo = random.choice(["Dulce", "Salado"])
+    
+    # 1. LÁCTEO (Redondeo 10ml/5g)
+    if estilo == "Dulce":
+        lacteo_nom, lacteo_base, lacteo_unit = random.choice([x for x in DB["Lacteos"] if "Leche" not in x[0]])
+    else:
+        lacteo_nom, lacteo_base, lacteo_unit = random.choice(DB["Lacteos"])
+        
+    add_to_cart(f"{lacteo_nom} ({lacteo_unit})", int(lacteo_base))
+    plato.append(f"{lacteo_nom} ({int(lacteo_base)}{lacteo_unit})")
+
+    # 2. CEREALES/PAN
+    hc_disp = max(0.5, bloques["HC"])
+    
+    if estilo == "Dulce":
+        # Redondeo 10g para avena
+        cereal, _ = get_ingrediente_ajustado("Carbo_Desayuno_Dulce", hc_disp, paso_redondeo=10)
+        grasa, _ = get_ingrediente_ajustado("Grasas_Dulce", 1, paso_redondeo=5)
+        fruta, _ = get_ingrediente_ajustado("Frutas", 1, paso_redondeo=10) # Fruta redondeo suave
+        
+        plato.append(f"Bowl con {cereal}")
+        plato.append(f"Topping: {grasa} y {fruta}")
+    else:
+        # Redondeo 10g para pan
+        cereal, _ = get_ingrediente_ajustado("Carbo_Desayuno_Salado", hc_disp, paso_redondeo=10)
+        grasa, _ = get_ingrediente_ajustado("Grasas_Salado", 1, paso_redondeo=5)
+        prot, _ = get_ingrediente_ajustado("Proteina_Snack", 1, paso_redondeo=10)
+        fruta, _ = get_ingrediente_ajustado("Frutas", 1, paso_redondeo=10)
+        
+        plato.append(f"Tostadas: {cereal} con {grasa} y {prot}")
+        plato.append(f"Postre: {fruta}")
+
+    return " // ".join(plato)
+
+def cocinar_snack(bloques):
+    estilo = random.choice(["Dulce", "Salado"])
+    plato = []
+    
+    if estilo == "Dulce":
+        l, _ = get_ingrediente_ajustado("Lacteos", 1)
+        f, _ = get_ingrediente_ajustado("Frutas", 1)
+        plato.append(f"Bowl de {l} con {f}")
+        
+        if bloques["GRASA"] > 0.5:
+            g, _ = get_ingrediente_ajustado("Grasas_Dulce", 1)
+            plato.append(f"Añadir: {g}")
+    else:
+        p, _ = get_ingrediente_ajustado("Proteina_Snack", 1, paso_redondeo=10)
+        if bloques["HC"] >= 0.8:
+            pan, _ = get_ingrediente_ajustado("Carbo_Desayuno_Salado", 0.8, paso_redondeo=10)
+            plato.append(f"Pequeño Bocadillo: {pan} con {p}")
+        else:
+            plato.append(f"Picoteo: {p}")
+            
+        f, _ = get_ingrediente_ajustado("Frutas", 1)
+        plato.append(f"Postre: {f}")
+
+    return " // ".join(plato)
+
+def cocinar_principal(bloques, prot_dia, carbo_dia):
+    plato = []
+    
+    # 1. VEGETAL (Base)
+    verdura, _ = get_ingrediente_ajustado("Verduras", 1, paso_redondeo=10)
+    plato.append(f"Base: {verdura}")
+    
+    # 2. PROTEÍNA -> REDONDEO 50g (SOLICITUD DE USUARIO)
+    p_nom, p_base, p_unit = prot_dia
+    p_total_crudo = p_base * bloques["PROT"]
+    # Forzamos pasos de 50g (100, 150, 200, 250)
+    p_total = redondear_cantidad(p_total_crudo, 50)
+    if p_total < 100: p_total = 100 # Mínimo un filete decente
+    
+    add_to_cart(f"{p_nom} ({p_unit})", p_total)
+    plato.append(f"Proteína: {p_nom} ({p_total}{p_unit})")
+    
+    # 3. GUARNICIÓN -> REDONDEO 10g (Para no perder precisión calórica excesiva)
+    c_nom, c_base, c_unit = carbo_dia
+    hc_guarnicion = min(bloques["HC"], 2.5) 
+    c_total = redondear_cantidad(c_base * hc_guarnicion, 10) # 30, 40, 50g...
+    if c_total < 30: c_total = 30 # Mínimo guarnición
+    
+    add_to_cart(f"{c_nom} ({c_unit})", c_total)
+    plato.append(f"Guarnición: {c_nom} ({c_total}{c_unit})")
+    
+    # 4. GRASA (Aceite limitado)
+    bloques_grasa = max(1, bloques["GRASA"])
+    grasa_total_g = 10 * bloques_grasa
+    aceite_g = min(15, grasa_total_g)
+    
+    add_to_cart("Aceite de Oliva Virgen Extra (g)", aceite_g)
+    plato.append(f"Aceite ({aceite_g}g)")
+    
+    # Grasa Acompañamiento
+    grasa_restante = grasa_total_g - aceite_g
+    if grasa_restante >= 10:
+        raciones_extra = grasa_restante / 10
+        extra_fat, _ = get_ingrediente_ajustado("Grasas_Acompanamiento", raciones_extra, paso_redondeo=10)
+        plato.append(f"Acompañamiento: {extra_fat}")
+    
+    # 5. POSTRE
+    fruta, _ = get_ingrediente_ajustado("Frutas", 1, paso_redondeo=10)
+    plato.append(f"Postre: {fruta}")
+    
+    return " + ".join(plato)
+
+def generar_menu(kcal, bloques, n_comidas):
+    reset_shopping_cart()
+    dias = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"]
+    
+    deck_prot = (DB["Proteina_Plato"] * 2)
+    random.shuffle(deck_prot)
+    deck_carbo = (DB["Carbo_Guarnicion"] * 2)
+    random.shuffle(deck_carbo)
+    
+    if n_comidas == 3:
+        tomas = ["Desayuno", "Almuerzo", "Cena"]
+        ratios = {"Desayuno": 0.25, "Almuerzo": 0.40, "Cena": 0.35}
+    elif n_comidas == 4:
+        tomas = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
+        ratios = {"Desayuno": 0.25, "Almuerzo": 0.35, "Merienda": 0.10, "Cena": 0.30}
+    else: 
+        tomas = ["Desayuno", "Media Mañana", "Almuerzo", "Merienda", "Cena"]
+        ratios = {"Desayuno": 0.20, "Media Mañana": 0.10, "Almuerzo": 0.35, "Merienda": 0.10, "Cena": 0.25}
+
+    menu = []
+
+    for i, dia in enumerate(dias):
+        prot_dia = deck_prot[i]
+        carbo_dia = deck_carbo[i]
+        fila = {"DÍA": dia}
+        
+        for toma in tomas:
+            # Factor de corrección para asegurar mínimos
+            b_toma = {k: max(0.5, v * ratios.get(toma)) for k, v in bloques.items()}
+            
+            if toma == "Desayuno":
+                fila[toma] = cocinar_desayuno(b_toma)
+            elif toma in ["Media Mañana", "Merienda"]:
+                fila[toma] = cocinar_snack(b_toma)
+            else: 
+                fila[toma] = cocinar_principal(b_toma, prot_dia, carbo_dia)
+        
+        menu.append(fila)
+    return pd.DataFrame(menu)
+
+def imprimir_guia_medidas():
+    print("\n" + "="*80)
+    print("   📚 ENCICLOPEDIA VISUAL DE MEDIDAS (GUÍA EXPANDIDA)")
+    print("="*80)
+    print("   🥄 GRASAS Y ACEITES")
+    print("     • Aceite (1 Cucharada sopera rasa) = 10g")
+    print("     • Aceite (1 Cucharada sopera llena) = 15g")
+    print("     • Aceite (1 Cucharadita postre) = 5g")
+    print("     • Aguacate (Medio, tamaño mediano) = aprox 100g (carne)")
+    print("     • Nueces/Almendras (Un puñado cerrado) = 20-30g")
+    print("     • Crema de Cacahuete (1 Cucharada colmada) = 20-25g")
+    print("-" * 80)
+    print("   🍚 HIDRATOS (PESO EN SECO/CRUDO)")
+    print("     • Arroz/Pasta (30-40g) = Un puñado pequeño (guarnición)")
+    print("     • Arroz/Pasta (60-80g) = Media taza estándar (plato principal)")
+    print("     • Arroz/Pasta (100g) = Una taza llena (volumen alto)")
+    print("     • Patata (1 Unidad tamaño huevo) = 50g")
+    print("     • Patata (1 Unidad tamaño puño) = 150g")
+    print("     • Copos de Avena (3 Cucharadas soperas) = 30g")
+    print("-" * 80)
+    print("   🥩 PROTEÍNAS (PESO EN CRUDO)")
+    print("     • Filete de Pollo/Ternera (Tamaño baraja de cartas) = 100-120g")
+    print("     • Filete de Pollo/Ternera (Tamaño palma mano abierta) = 150-180g")
+    print("     • Pescado Blanco (Filete estándar) = 150g")
+    print("     • Lata de Atún pequeña (peso escurrido) = 52g")
+    print("     • Huevo (Tamaño L) = aprox 60g")
+    print("-" * 80)
+    print("   🍎 FRUTAS Y VERDURAS")
+    print("     • Manzana/Pera/Naranja (1 Pieza mediana) = 150g")
+    print("     • Plátano (1 Unidad mediana sin piel) = 80-90g")
+    print("     • Fresas (1 Taza llena) = 150g")
+    print("     • Ensalada (Bolsa estándar supermercado) = 150-200g")
+    print("="*80)
+
+# --- 6. EJECUCIÓN PRINCIPAL ---
+if __name__ == "__main__":
+    kcal, bloques, n_comidas, g_prot_total = calcular_requerimientos()
+    
+    print(f"\n✅ PLAN GENERADO CON ÉXITO")
+    print(f"   📊 Calorías: {kcal} Kcal")
+    print(f"   💪 Proteína: {int(g_prot_total)}g (Rigor científico: 1.6g/kg)")
+    print(f"   🍽️  Estructura: {n_comidas} ingestas diarias")
+    
+    df = generar_menu(kcal, bloques, n_comidas)
+    
+    pd.set_option('display.max_colwidth', None)
+    for i, row in df.iterrows():
+        print(f"\n╔══════════ {row['DÍA']} ══════════╗")
+        orden = ["Desayuno", "Media Mañana", "Almuerzo", "Merienda", "Cena"]
+        for comida in orden:
+            if comida in row:
+                print(f"👉 {comida.upper()}: {row[comida]}")
+        
+    print("\n" + "="*50)
+    print("🛒 LISTA DE LA COMPRA SEMANAL (AUTOMÁTICA)")
+    print("   (Todo sumado para ir una sola vez al súper)")
+    print("-" * 50)
+    for k, v in sorted(SHOPPING_CART.items()):
+        # Convertir a kg si es mucho
+        if v >= 1000: 
+            print(f"[ ] {k}: {v/1000:.2f} kg/L")
+        else: 
+            print(f"[ ] {k}: {int(v)}")
+            
+    imprimir_guia_medidas()
