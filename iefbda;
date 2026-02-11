@@ -1,0 +1,240 @@
+import random
+import math
+import pandas as pd
+
+# --- 1. BASE DE DATOS (MERCADONA EDITION) ---
+DB_MERCADONA = {
+    "Lacteos": [
+        ("Leche Desnatada/Semi Hacendado", 200, "ml"),
+        ("Yogur Natural 0% Hacendado", 125, "g"), 
+        ("Queso Fresco Batido 0%", 100, "g"),
+        ("Kéfir Hacendado", 200, "ml")
+    ],
+    "Quesos_Light": [ 
+        ("Mozzarella Light", 30, "g"),
+        ("Queso Havarti Light", 30, "g"),
+        ("Queso Tierno Mezcla Light", 30, "g"),
+        ("Requesón 0% (Tarrina)", 70, "g")
+    ],
+    "Proteina_Sandwich": [ 
+        ("Pavo Cocido >85% (Lonchas)", 50, "g"),
+        ("Jamón Serrano (Gran Reserva)", 30, "g"),
+        ("Lomo Embuchado", 30, "g"),
+        ("Atún Claro al Natural (Lata)", 52, "g"), 
+        ("Huevo Cocido", 1, "ud")
+    ],
+    "Proteina_Cocinar": [ 
+        ("Pechuga de Pollo", 50, "g"),
+        ("Filete de Ternera", 50, "g"),
+        ("Lomo de Cerdo Adobado/Fresco", 50, "g"),
+        ("Merluza (Filetes)", 75, "g"),
+        ("Salmón (Lomos)", 50, "g"),
+        ("Bacalao Desalado", 75, "g"),
+        ("Sepia Limpia", 75, "g"),
+        ("Carne Picada Pollo/Pavo", 50, "g")
+    ],
+    "Carbo_Desayuno_Snack": [
+        ("Panecillos 100% Integral", 20, "g"),
+        ("Pan de Molde Integral Hacendado", 25, "g"), 
+        ("Copos de Avena (Caja azul)", 15, "g"),
+        ("Tortitas de Maíz/Arroz", 15, "g") 
+    ],
+    "Carbo_Guarnicion": [ 
+        ("Arroz (Hacendado)", 15, "g"),
+        ("Pasta (Hélices/Macarrones)", 15, "g"),
+        ("Patata (Malla)", 50, "g"),
+        ("Garbanzos de Bote", 40, "g"), 
+        ("Lentejas de Bote", 40, "g"),
+        ("Quinoa (Vasitos)", 15, "g")
+    ],
+    "Verduras": [ 
+        ("Bolsa Ensalada Mezclum", 300, "g"),
+        ("Calabacín (Rodajas)", 300, "g"),
+        ("Espinacas (Bolsa microondas)", 300, "g"),
+        ("Judías Verdes Planas", 200, "g"),
+        ("Parrillada de Verduras (Congelada)", 300, "g")
+    ],
+    "Frutas": [
+        ("Manzana", 100, "g"), ("Plátano (Canarias)", 50, "g"),
+        ("Mandarinas", 100, "g"), ("Kiwi", 100, "g"), ("Pera", 100, "g")
+    ],
+    "Grasas": [
+        ("Aceite de Oliva (AOVE)", 10, "g"),
+        ("Aguacate (Malla)", 50, "g"),
+        ("Nueces (Paquete)", 10, "g"), 
+        ("Guacamole Hacendado", 30, "g") 
+    ]
+}
+
+# --- 2. FUNCIONES DE CÁLCULO CIENTÍFICO ---
+
+def calcular_tmb_harris(peso, talla, edad, sexo, factor_actividad):
+    # Ecuaciones Harris-Benedict (Source 19, 20)
+    if sexo == 'H':
+        tmb = 66.5 + (13.75 * peso) + (5 * talla) - (6.78 * edad)
+    else:
+        tmb = 665 + (9.56 * peso) + (1.85 * talla) - (4.68 * edad)
+    
+    return tmb * factor_actividad
+
+def calcular_bloques(kcal):
+    # Distribución: 55% HC / 15% P / 30% G (Source 24)
+    # HC: Dividimos por 12.5g (promedio entre fruta y cereal)
+    # Prot: Dividimos por 8g (promedio huevo/carne)
+    # Grasa: Dividimos por 10g
+    b_hc = int((kcal * 0.55) / 4 / 12.5) 
+    b_prot = int((kcal * 0.15) / 4 / 8)  
+    b_grasa = int((kcal * 0.30) / 9 / 10) 
+    return {"HC": b_hc, "PROT": b_prot, "GRASA": b_grasa}
+
+def formatear_alimento(nombre, cantidad_base, unidad, num_bloques):
+    if num_bloques <= 0: return ""
+    total = cantidad_base * num_bloques
+    # Redondeo "humano"
+    if unidad in ["g", "ml"]:
+        total = round(total / 5) * 5 # Redondear a multiplos de 5
+    elif unidad == "ud":
+        total = math.ceil(total)
+    return f"{nombre} ({total}{unidad})"
+
+# --- 3. LOGICA CULINARIA ---
+
+def generar_snack_coherente(nombre_toma, bloques):
+    # Elige un tipo de snack al azar
+    tipo = random.choice(["Bocadillo", "Bowl", "Tortitas"])
+    items = []
+    
+    if tipo == "Bocadillo":
+        pan = formatear_alimento(*[x for x in DB_MERCADONA["Carbo_Desayuno_Snack"] if "Pan" in x[0]][0], bloques["HC"])
+        relleno = formatear_alimento(*random.choice(DB_MERCADONA["Proteina_Sandwich"]), bloques["PROT"])
+        grasa = formatear_alimento("Aceite/Aguacate", 10, "g", bloques["GRASA"]) 
+        items = [f"Bocadillo: {pan} + {relleno}", grasa]
+
+    elif tipo == "Bowl":
+        base = formatear_alimento(*random.choice(DB_MERCADONA["Lacteos"]), 1)
+        cereal = formatear_alimento("Avena/Cereales", 15, "g", bloques["HC"])
+        fruta = formatear_alimento(*random.choice(DB_MERCADONA["Frutas"]), 1)
+        grasa = formatear_alimento("Nueces/Almendras", 10, "g", bloques["GRASA"])
+        items = [f"Bowl: {base} + {cereal} + {fruta} + {grasa}"]
+
+    else: # Tortitas
+        base = formatear_alimento("Tortitas Maíz/Arroz", 15, "g", bloques["HC"])
+        acompanamiento = formatear_alimento(*random.choice(DB_MERCADONA["Proteina_Sandwich"] + DB_MERCADONA["Quesos_Light"]), bloques["PROT"])
+        fruta = formatear_alimento(*random.choice(DB_MERCADONA["Frutas"]), 1)
+        items = [f"Snack Rápido: {base} + {acompanamiento} + {fruta}"]
+
+    return " + ".join([i for i in items if i])
+
+def generar_menu_semanal_batch_cooking(bloques_dia, n_comidas):
+    dias = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"]
+    
+    # Barajar opciones para variedad semanal
+    deck_prot = (DB_MERCADONA["Proteina_Cocinar"] * 2)
+    random.shuffle(deck_prot)
+    deck_carbo = (DB_MERCADONA["Carbo_Guarnicion"] * 2)
+    random.shuffle(deck_carbo)
+
+    # Porcentajes de reparto (Source 14)
+    ratios = { "Desayuno": 0.20, "Media Mañana": 0.10, "Almuerzo": 0.35, "Merienda": 0.10, "Cena": 0.25 }
+    
+    plan_semanal = []
+
+    for i, dia in enumerate(dias):
+        # Seleccionar COMIDA DEL DÍA (Batch Cooking: Lo mismo para comida y cena)
+        prot_del_dia = deck_prot[i]
+        carbo_del_dia = deck_carbo[i]
+        
+        fila = {"DÍA": dia}
+        
+        # Definir qué tomas se hacen según input del usuario
+        if n_comidas == 3:
+            tomas = ["Desayuno", "Almuerzo", "Cena"]
+        elif n_comidas == 4:
+            tomas = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
+        else:
+            tomas = ["Desayuno", "Media Mañana", "Almuerzo", "Merienda", "Cena"]
+
+        for toma in tomas:
+            # Calcular bloques para ESTA toma
+            b_toma = {k: max(1, int(v * ratios.get(toma, 0.2))) for k, v in bloques_dia.items()}
+            
+            if toma == "Desayuno":
+                item1 = formatear_alimento(*random.choice(DB_MERCADONA["Lacteos"]), 1)
+                item2 = formatear_alimento(*random.choice(DB_MERCADONA["Carbo_Desayuno_Snack"]), b_toma["HC"])
+                item3 = formatear_alimento(*random.choice(DB_MERCADONA["Frutas"]), 1)
+                fila[toma] = f"{item1} + {item2} + {item3}"
+
+            elif toma in ["Media Mañana", "Merienda"]:
+                fila[toma] = generar_snack_coherente(toma, b_toma)
+
+            elif toma in ["Almuerzo", "Cena"]:
+                # Usamos la proteína y carbo asignados al DÍA (Batch Cooking)
+                p = formatear_alimento(prot_del_dia[0], prot_del_dia[1], prot_del_dia[2], b_toma["PROT"])
+                ch = formatear_alimento(carbo_del_dia[0], carbo_del_dia[1], carbo_del_dia[2], b_toma["HC"])
+                v = formatear_alimento(*random.choice(DB_MERCADONA["Verduras"]), 1)
+                g = formatear_alimento("Aceite Oliva", 10, "g", b_toma["GRASA"])
+                fila[toma] = f"{v} + {p} + {ch} + {g}"
+        
+        plan_semanal.append(fila)
+        
+    return pd.DataFrame(plan_semanal)
+
+# --- 4. INTERFAZ DE USUARIO (INPUTS) ---
+
+def main():
+    print("\n" + "="*50)
+    print("      PLANIFICADOR NUTRICIONAL EFICIENTE (v4.1)")
+    print("="*50)
+    print("Por favor, introduce tus datos para personalizar la dieta:\n")
+    
+    try:
+        # Inputs interactivos
+        peso = float(input("1. ¿Cuál es tu peso actual (kg)? "))
+        talla = float(input("2. ¿Cuánto mides (cm)? "))
+        edad = int(input("3. ¿Qué edad tienes? "))
+        sexo = input("4. Sexo (H/M): ").strip().upper()
+        
+        print("\n--- Nivel de Actividad ---")
+        print("  [1] Sedentario (Oficina, sin deporte)")
+        print("  [2] Ligero (1-3 días deporte/semana)")
+        print("  [3] Moderado (3-5 días deporte/semana)")
+        print("  [4] Intenso (6-7 días deporte/semana)")
+        opcion_act = input(">> Elige un número (1-4): ")
+        
+        if opcion_act == '1': factor = 1.2
+        elif opcion_act == '2': factor = 1.375
+        elif opcion_act == '3': factor = 1.55
+        elif opcion_act == '4': factor = 1.725
+        else: factor = 1.55 # Por defecto
+        
+        n_comidas = int(input("\n5. ¿Cuántas comidas harás al día (3, 4 o 5)? "))
+        if n_comidas not in [3, 4, 5]: n_comidas = 5
+
+        # Cálculo
+        kcal = calcular_tmb_harris(peso, talla, edad, sexo, factor)
+        bloques = calcular_bloques(kcal)
+        
+        print(f"\n✅ DATOS PROCESADOS: {int(kcal)} Kcal diarias.")
+        print("Generando menú 'Espejo' (Almuerzo=Cena para cocinar 1 vez)...")
+        print("-" * 50)
+
+        # Generación
+        df = generar_menu_semanal_batch_cooking(bloques, n_comidas)
+        
+        # Mostrar Resultado
+        for index, row in df.iterrows():
+            print(f"\n╔══════════ {row['DÍA']} ══════════╗")
+            if 'Desayuno' in row: print(f"☕ DESAYUNO:    {row['Desayuno']}")
+            if 'Media Mañana' in row: print(f"🥪 MEDIA MAÑ.:  {row['Media Mañana']}")
+            if 'Almuerzo' in row: print(f"🥘 ALMUERZO:    {row['Almuerzo']}")
+            if 'Merienda' in row: print(f"🍏 MERIENDA:    {row['Merienda']}")
+            if 'Cena' in row: print(f"🍲 CENA:        {row['Cena']}")
+            
+        print("\n[TIP]: En Almuerzo y Cena el ingrediente principal es el mismo.")
+        print("       ¡Cocina todo junto al mediodía y guarda la cena!")
+
+    except ValueError:
+        print("\n❌ Error: Por favor, introduce números válidos (usa punto '.' para decimales).")
+
+if __name__ == "__main__":
+    main()
