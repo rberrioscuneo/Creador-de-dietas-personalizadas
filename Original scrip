@@ -124,14 +124,15 @@ def calcular_requerimientos():
 
     print("\n--- 3. Frecuencia de Comidas ---")
     print("   [3] Tres comidas: Desayuno, Almuerzo y Cena")
-    print("   [4] Cuatro comidas: Añadiendo Merienda")
+    print("   [4.1] Cuatro comidas: Añadiendo Merienda")
+    print("   [4.2] Cuatro comidas: Añadiendo Media Mañana")
     print("   [5] Cinco comidas: Añadiendo Media Mañana y Merienda")
     try:
-        n_comidas_input = int(input("   > Selecciona una opción (3, 4, 5): "))
-        if n_comidas_input not in [3, 4, 5]: n_comidas = 4
+        n_comidas_input = int(input("   > Selecciona una opción (3, 4.1, 4.2, 5): "))
+        if n_comidas_input not in [3, 4.1, 4.2, 5]: n_comidas = 4.2
         else: n_comidas = n_comidas_input
     except:
-        n_comidas = 4
+        n_comidas = 4.2
 
     print("\n--- 4. Objetivo Nutricional ---")
     print("   [A] Perder Grasa (Déficit Calórico)")
@@ -332,9 +333,12 @@ def generar_menu(kcal, bloques, n_comidas):
     if n_comidas == 3:
         tomas = ["Desayuno", "Almuerzo", "Cena"]
         ratios = {"Desayuno": 0.25, "Almuerzo": 0.40, "Cena": 0.35}
-    elif n_comidas == 4:
+    elif n_comidas == 4.1:
         tomas = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
         ratios = {"Desayuno": 0.25, "Almuerzo": 0.40, "Merienda": 0.10, "Cena": 0.25}
+    elif n_comidas == 4.2:
+        tomas = ["Desayuno", "Media Mañana", "Almuerzo", "Cena"]
+        ratios = {"Desayuno": 0.25, "Media Mañana": 0.10, "Almuerzo": 0.40, "Cena": 0.25}
     else: 
         tomas = ["Desayuno", "Media Mañana", "Almuerzo", "Merienda", "Cena"]
         ratios = {"Desayuno": 0.20, "Media Mañana": 0.10, "Almuerzo": 0.35, "Merienda": 0.10, "Cena": 0.25}
