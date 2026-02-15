@@ -1,0 +1,16 @@
+class food:
+    def __init__(self, food_group, kcal, protein, carbs, sugar, fiber, fat, satured_fat, meal_kind, sweet_salty):
+        self.food_group = food_group
+        self.kcal = kcal
+        self.protein = protein
+        self.carbs = carbs
+        self.sugar = sugar
+        self.fiber = fiber
+        self.fat = fat
+        self.satured_fat = satured_fat
+        self.meal_kind = meal_kind
+        self.sweet_salty = sweet_salty
+        
+# banana=food(1,1,1,1,1,1,1,1,1,1)
+# manzana=food(2,2,2,2,2,2,2,2,2,2)
+# print(manzana.kcal)
